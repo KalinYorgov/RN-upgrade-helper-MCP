@@ -1,193 +1,131 @@
-Perfect! I've completely rewritten the MCP server to follow the proper documented patterns. Here are the key improvements:
+# React Native Upgrade Helper MCP Server
 
-## ✅ Now Following MCP Documentation Properly
+A Model Context Protocol (MCP) server that automates the [React Native Upgrade Helper](https://react-native-community.github.io/upgrade-helper/) website to extract upgrade information between React Native versions.
 
-### **Correct API Usage**
-- ✅ Uses `McpServer` instead of low-level `Server` class
-- ✅ Uses `registerTool()` instead of `setRequestHandler()`
-- ✅ Uses `zod` for schema validation as recommended
-- ✅ Proper error handling with `isError: true`
-- ✅ Correct import paths from the SDK
+## What It Does
 
-### **Schema Validation**
-- ✅ Uses `z.string()`, `z.optional()`, `z.default()` for proper type safety
-- ✅ Includes descriptions for better UX: `.describe('...')`
-- ✅ Proper optional parameters with defaults
-
-### **Proper Tool Registration**
-```typescript
-this.server.registerTool(
-  'get_upgrade_info',
-  {
-    title: 'Get React Native Upgrade Information',
-    description: 'Extract React Native upgrade information between two versions',
-    inputSchema: {
-      fromVersion: z.string().describe('Source React Native version (e.g., "0.70.14")'),
-      toVersion: z.string().describe('Target React Native version (e.g., "0.74.0")'),
-      // ... more schema
-    },
-  },
-  async ({ fromVersion, toVersion, packageName, projectName }) => {
-    // Tool implementation
-  }
-);
-```
-
-This follows the exact pattern from the documentation!
+This MCP server uses Playwright to automatically:
+1. Fill out the React Native Upgrade Helper form with your version details
+2. Extract comprehensive upgrade information including file diffs
+3. Return structured JSON data that AI assistants can use to help with React Native upgrades
 
 ## Installation
 
-1. **Create the project directory:**
+1. **Clone and install dependencies:**
 ```bash
-mkdir react-native-upgrade-helper-mcp
+git clone <repository-url>
 cd react-native-upgrade-helper-mcp
+npm install
 ```
 
-2. **Save the files:**
-   - Save the TypeScript code as `src/index.ts`
-   - Save the package.json configuration
-
-3. **Install dependencies:**
+2. **Install Playwright browser:**
 ```bash
-npm install
-# Install Playwright browsers
 npx playwright install chromium
 ```
 
-**Dependencies installed:**
-- `@modelcontextprotocol/sdk`: Official MCP SDK
-- `playwright`: For browser automation  
-- `zod`: Schema validation (as recommended by MCP docs)
-- `typescript`, `tsx`: Development tools
-
-4. **Build the project:**
+3. **Build the project:**
 ```bash
 npm run build
 ```
 
 ## Configuration
 
-### For Claude Code
+Add this server to your MCP client configuration:
 
-Add to your `~/.config/claude-code/mcp_servers.json`:
-
+### Claude Code
+Add to `~/.config/claude-code/mcp_servers.json`:
 ```json
 {
   "mcpServers": {
     "react-native-upgrade-helper": {
       "command": "node",
-      "args": ["/path/to/react-native-upgrade-helper-mcp/dist/index.js"],
-      "env": {}
+      "args": ["/absolute/path/to/react-native-upgrade-helper-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-### For Cursor Agent
+### Claude Desktop
+Add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "react-native-upgrade-helper": {
+      "command": "node",
+      "args": ["/absolute/path/to/react-native-upgrade-helper-mcp/dist/index.js"]
+    }
+  }
+}
+```
 
-Add to your MCP configuration:
-
+### Cursor
+Add to your MCP settings:
 ```json
 {
   "servers": {
     "react-native-upgrade-helper": {
       "command": "node",
-      "args": ["/path/to/react-native-upgrade-helper-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/react-native-upgrade-helper-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-### For Claude Desktop
-
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "react-native-upgrade-helper": {
-      "command": "node",
-      "args": ["/path/to/react-native-upgrade-helper-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-### **What Was Wrong Before vs. Correct Now**
-
-| ❌ **Old (Incorrect)** | ✅ **New (Correct)** |
-|------------------------|----------------------|
-| `import { Server } from '@modelcontextprotocol/sdk/server/index.js'` | `import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'` |
-| `server.setRequestHandler(CallToolRequestSchema, ...)` | `server.registerTool('tool-name', {...}, async () => {...})` |
-| Manual JSON schema definitions | `zod` schemas with `z.string()`, `z.optional()`, etc. |
-| Complex manual request/response handling | Simple async function with automatic serialization |
-| No proper error handling | `isError: true` flag for proper error responses |
-
-The new implementation follows the **"Quick Start"** pattern exactly as shown in the MCP documentation!
-
-## How It Works
-
-The MCP server automates the React Native upgrade helper by:
-
-1. **Loading the page**: Navigates to the upgrade helper website
-2. **Form automation**: Automatically fills out the 4 form fields:
-   - App name (optional, uses your `projectName` parameter)
-   - App package (optional, uses your `packageName` parameter) 
-   - Current React Native version (required, uses your `fromVersion` parameter)
-   - Target React Native version (required, uses your `toVersion` parameter)
-3. **Form submission**: Clicks the submit/update button to generate the diff
-4. **Data extraction**: Waits for results to load and extracts all the upgrade information
-5. **Structured output**: Returns the data in clean JSON format
-
-This eliminates the need for manual form interaction and makes the data accessible to AI agents.
+**Important:** Replace `/absolute/path/to/react-native-upgrade-helper-mcp/` with the actual absolute path to this project directory.
 
 ## Usage
 
-The MCP server provides two main tools that follow the documented MCP patterns:
+The server provides two tools:
 
-### 1. `get_upgrade_info`
-Extracts comprehensive upgrade information between React Native versions.
-
-**Parameters (with Zod validation):**
-- `fromVersion` (required): Source React Native version (e.g., "0.70.14")
-- `toVersion` (required): Target React Native version (e.g., "0.74.0")  
-- `packageName` (optional): Package name for the project (default: "com.example.app")
-- `projectName` (optional): Project name (default: "ExampleApp")
-
-**Example usage in Claude Code:**
-```
-@react-native-upgrade-helper get_upgrade_info fromVersion=0.70.14 toVersion=0.74.0 packageName=com.georgeatasda projectName=GeorgeAtAsda
-```
-
-### 2. `get_file_diff`
-Gets specific file differences for the upgrade.
+### 1. `get_upgrade_info` 
+Get comprehensive upgrade information between React Native versions.
 
 **Parameters:**
-- `fromVersion` (required): Source React Native version
-- `toVersion` (required): Target React Native version
-- `fileName` (required): Specific file to get diff for (e.g., "package.json", "android/build.gradle")
+- `fromVersion` (required): Source React Native version (e.g., "0.70.14")
+- `toVersion` (required): Target React Native version (e.g., "0.74.0")
 - `packageName` (optional): Package name (default: "com.example.app")
 - `projectName` (optional): Project name (default: "ExampleApp")
 
-**Example usage:**
+**Example:**
+```
+@react-native-upgrade-helper get_upgrade_info fromVersion=0.70.14 toVersion=0.74.0
+```
+
+### 2. `get_file_diff`
+Get specific file differences for the upgrade.
+
+**Parameters:**
+- `fromVersion` (required): Source React Native version
+- `toVersion` (required): Target React Native version  
+- `fileName` (required): Specific file to get diff for (e.g., "package.json")
+- `packageName` (optional): Package name (default: "com.example.app")
+- `projectName` (optional): Project name (default: "ExampleApp")
+
+**Example:**
 ```
 @react-native-upgrade-helper get_file_diff fromVersion=0.70.14 toVersion=0.74.0 fileName=package.json
 ```
 
+## Example AI Prompts
+
+Once configured, you can ask your AI assistant:
+
+- "Help me upgrade my React Native app from 0.70.14 to 0.74.0. What changes do I need to make?"
+- "Show me the specific changes needed for package.json when upgrading to RN 0.74.0"
+- "What are the breaking changes when upgrading from React Native 0.70 to 0.74?"
+
 ## Output Format
 
-The server returns JSON-formatted data with improved structure:
-
-### `get_upgrade_info` Response:
+### `get_upgrade_info` returns:
 ```json
 {
   "fromVersion": "0.70.14",
-  "toVersion": "0.74.0", 
-  "packageName": "com.georgeatasda",
-  "projectName": "GeorgeAtAsda",
+  "toVersion": "0.74.0",
+  "packageName": "com.example.app",
+  "projectName": "ExampleApp",
   "url": "https://react-native-community.github.io/upgrade-helper/",
-  "summary": "Upgrade summary text",
-  "breakingChanges": ["Breaking change 1", "Breaking change 2"],
+  "summary": "Upgrade summary information",
+  "breakingChanges": ["Breaking change descriptions"],
   "fileChanges": [
     {
       "fileName": "package.json",
@@ -203,62 +141,47 @@ The server returns JSON-formatted data with improved structure:
 }
 ```
 
-### `get_file_diff` Response:
+### `get_file_diff` returns:
 ```json
 {
   "fromVersion": "0.70.14",
   "toVersion": "0.74.0",
-  "fileName": "package.json", 
-  "changeType": "modified",
+  "fileName": "package.json",
+  "changeType": "modified", 
   "diff": "actual diff content...",
   "found": true
 }
 ```
 
-**Error Handling:** Both tools now properly return `isError: true` for failed requests, following MCP best practices.
-
-## Example Prompts for Claude Code
-
-1. **Get upgrade overview:**
-   ```
-   Can you help me upgrade my React Native project from 0.70.14 to 0.74.0? Use the upgrade helper to show me what needs to be changed.
-   ```
-
-2. **Focus on specific files:**
-   ```
-   Show me the specific changes needed for package.json and android/build.gradle when upgrading from RN 0.70.14 to 0.74.0.
-   ```
-
-3. **Breaking changes analysis:**
-   ```
-   What are the breaking changes I need to be aware of when upgrading from React Native 0.70.14 to 0.74.0?
-   ```
-
-## Troubleshooting
-
-1. **Playwright issues**: Make sure Chromium is installed with `npx playwright install chromium`
-
-2. **Permission errors**: Ensure the script has execute permissions:
-   ```bash
-   chmod +x dist/index.js
-   ```
-
-3. **Network timeouts**: The tool waits up to 15 seconds for the page to load after form submission. If you have slow internet, this should still be sufficient, but you can increase the timeout in the code if needed.
-
-4. **Path issues**: Use absolute paths in the MCP configuration files.
-
 ## Development
 
-To run in development mode:
 ```bash
+# Run in development mode
 npm run dev
-```
 
-To test the server manually:
-```bash
+# Build for production
+npm run build
+
+# Test the server manually
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | node dist/index.js
 ```
 
+## Troubleshooting
+
+**Playwright issues:** Ensure Chromium is installed:
+```bash
+npx playwright install chromium
+```
+
+**Permission errors:** Make sure the script is executable:
+```bash
+chmod +x dist/index.js
+```
+
+**Path issues:** Always use absolute paths in MCP configuration files.
+
+**Network timeouts:** The server waits 15 seconds for page loads. For slower connections, modify the timeout in `src/index.ts`.
+
 ## License
 
-MIT License - feel free to modify and distribute as needed.
+MIT License
